@@ -59,8 +59,14 @@ spec:
     - '*'
     manualSync: true
   - kind: deny
-    schedule: '0 17-9 * * *'
-    duration: 16h
+    schedule: '0 17-23 * * *'
+    duration: 7h
+    applications:
+    - '*'
+    manualSync: false
+  - kind: deny
+    schedule: '0 0-9 * * *'
+    duration: 10h
     applications:
     - '*'
     manualSync: false
