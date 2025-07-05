@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-nginx-dev
+  namespace: argocd
+  labels:
+    app: sample-nginx
+    environment: dev
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:Bakmurat/Applications.git
+    targetRevision: HEAD
+    path: manifests/sample-nginx/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sample-apps-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  ignoreDifferences:
+    - group: ""
+      kind: "Service"
+      jsonPointers:
+        - /spec/clusterIP
