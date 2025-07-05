@@ -1,0 +1,66 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: prod-project
+  namespace: argocd
+  labels:
+    environment: prod
+spec:
+  description: Production environment project
+  sourceRepos:
+  - 'git@github.com:Bakmurat/Applications.git'
+  - 'https://github.com/Bakmurat/Applications.git'
+  destinations:
+  - namespace: 'sample-apps-prod'
+    server: https://kubernetes.default.svc
+  - namespace: 'argocd'
+    server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+  - group: ''
+    kind: Namespace
+  namespaceResourceWhitelist:
+  - group: ''
+    kind: Service
+  - group: ''
+    kind: ConfigMap
+  - group: ''
+    kind: Secret
+  - group: 'apps'
+    kind: Deployment
+  - group: 'apps'
+    kind: ReplicaSet
+  - group: ''
+    kind: Pod
+  - group: 'networking.k8s.io'
+    kind: Ingress
+  - group: 'argoproj.io'
+    kind: Application
+  roles:
+  - name: prod-admin
+    description: Production environment admin
+    policies:
+    - p, proj:prod-project:prod-admin, applications, *, prod-project/*, allow
+    - p, proj:prod-project:prod-admin, repositories, *, *, allow
+    groups:
+    - platform-team
+    - sre-team
+  - name: prod-readonly
+    description: Production environment read-only access
+    policies:
+    - p, proj:prod-project:prod-readonly, applications, get, prod-project/*, allow
+    groups:
+    - prod-readonly
+    - dev-team
+  syncWindows:
+  - kind: allow
+    schedule: '0 10-16 * * 2,4'
+    duration: 6h
+    applications:
+    - '*'
+    manualSync: true
+  - kind: deny
+    schedule: '0 17-9 * * *'
+    duration: 16h
+    applications:
+    - '*'
+    manualSync: false

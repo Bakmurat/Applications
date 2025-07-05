@@ -1,0 +1,59 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: dev-project
+  namespace: argocd
+  labels:
+    environment: dev
+spec:
+  description: Development environment project
+  sourceRepos:
+  - 'git@github.com:Bakmurat/Applications.git'
+  - 'https://github.com/Bakmurat/Applications.git'
+  destinations:
+  - namespace: 'sample-apps-dev'
+    server: https://kubernetes.default.svc
+  - namespace: 'argocd'
+    server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+  - group: ''
+    kind: Namespace
+  namespaceResourceWhitelist:
+  - group: ''
+    kind: Service
+  - group: ''
+    kind: ConfigMap
+  - group: ''
+    kind: Secret
+  - group: 'apps'
+    kind: Deployment
+  - group: 'apps'
+    kind: ReplicaSet
+  - group: ''
+    kind: Pod
+  - group: 'networking.k8s.io'
+    kind: Ingress
+  - group: 'argoproj.io'
+    kind: Application
+  roles:
+  - name: dev-admin
+    description: Development environment admin
+    policies:
+    - p, proj:dev-project:dev-admin, applications, *, dev-project/*, allow
+    - p, proj:dev-project:dev-admin, repositories, *, *, allow
+    groups:
+    - dev-team
+  - name: dev-readonly
+    description: Development environment read-only access
+    policies:
+    - p, proj:dev-project:dev-readonly, applications, get, dev-project/*, allow
+    - p, proj:dev-project:dev-readonly, applications, sync, dev-project/*, allow
+    groups:
+    - dev-readonly
+  syncWindows:
+  - kind: allow
+    schedule: '* * * * *'
+    duration: 24h
+    applications:
+    - '*'
+    manualSync: true

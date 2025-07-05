@@ -6,7 +6,7 @@ metadata:
   labels:
     environment: uat
 spec:
-  project: default
+  project: uat-project
   source:
     repoURL: git@github.com:Bakmurat/Applications.git
     targetRevision: HEAD

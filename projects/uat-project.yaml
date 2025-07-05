@@ -1,0 +1,66 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: uat-project
+  namespace: argocd
+  labels:
+    environment: uat
+spec:
+  description: UAT environment project
+  sourceRepos:
+  - 'git@github.com:Bakmurat/Applications.git'
+  - 'https://github.com/Bakmurat/Applications.git'
+  destinations:
+  - namespace: 'sample-apps-uat'
+    server: https://kubernetes.default.svc
+  - namespace: 'argocd'
+    server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+  - group: ''
+    kind: Namespace
+  namespaceResourceWhitelist:
+  - group: ''
+    kind: Service
+  - group: ''
+    kind: ConfigMap
+  - group: ''
+    kind: Secret
+  - group: 'apps'
+    kind: Deployment
+  - group: 'apps'
+    kind: ReplicaSet
+  - group: ''
+    kind: Pod
+  - group: 'networking.k8s.io'
+    kind: Ingress
+  - group: 'argoproj.io'
+    kind: Application
+  roles:
+  - name: uat-admin
+    description: UAT environment admin
+    policies:
+    - p, proj:uat-project:uat-admin, applications, *, uat-project/*, allow
+    - p, proj:uat-project:uat-admin, repositories, *, *, allow
+    groups:
+    - uat-team
+    - platform-team
+  - name: uat-deployer
+    description: UAT environment deployer
+    policies:
+    - p, proj:uat-project:uat-deployer, applications, get, uat-project/*, allow
+    - p, proj:uat-project:uat-deployer, applications, sync, uat-project/*, allow
+    groups:
+    - uat-deployers
+  syncWindows:
+  - kind: allow
+    schedule: '0 9-17 * * 1-5'
+    duration: 8h
+    applications:
+    - '*'
+    manualSync: true
+  - kind: deny
+    schedule: '0 18-8 * * *'
+    duration: 14h
+    applications:
+    - '*'
+    manualSync: false

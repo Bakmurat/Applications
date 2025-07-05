@@ -6,7 +6,7 @@ metadata:
   labels:
     environment: prod
 spec:
-  project: default
+  project: prod-project
   source:
     repoURL: git@github.com:Bakmurat/Applications.git
     targetRevision: HEAD
