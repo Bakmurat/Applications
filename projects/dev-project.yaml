@@ -5,19 +5,28 @@ metadata:
   namespace: argocd
   labels:
     environment: dev
+    type: business-applications
 spec:
-  description: Development environment project
+  description: Development environment for business applications
+  
+  # Source repositories
   sourceRepos:
-  - 'git@github.com:Bakmurat/Applications.git'
-  - 'https://github.com/Bakmurat/Applications.git'
+  - 'http://s3.devkuban.com/helm-charts'  # MinIO Helm repository
+  - 'git@github.com:Bakmurat/Applications.git'  # This repo for app definitions
+  
+  # Destination clusters and namespaces
   destinations:
-  - namespace: 'sample-apps-dev'
-    server: https://kubernetes.default.svc
+  - namespace: 'business-apps-dev'
+    server: '*'  # Allow deployment to any cluster
   - namespace: 'argocd'
-    server: https://kubernetes.default.svc
+    server: '*'  # For app-of-apps pattern
+    
+  # Cluster-level resources (minimal for business apps)
   clusterResourceWhitelist:
   - group: ''
     kind: Namespace
+    
+  # Namespace-level resources (business application resources)
   namespaceResourceWhitelist:
   - group: ''
     kind: Service
@@ -25,6 +34,8 @@ spec:
     kind: ConfigMap
   - group: ''
     kind: Secret
+  - group: ''
+    kind: PersistentVolumeClaim
   - group: 'apps'
     kind: Deployment
   - group: 'apps'
@@ -33,27 +44,44 @@ spec:
     kind: Pod
   - group: 'networking.k8s.io'
     kind: Ingress
-  - group: 'argoproj.io'
-    kind: Application
+  - group: 'networking.k8s.io'
+    kind: NetworkPolicy
+  - group: 'autoscaling'
+    kind: HorizontalPodAutoscaler
+  - group: 'policy'
+    kind: PodDisruptionBudget
+  - group: 'monitoring.coreos.com'
+    kind: ServiceMonitor
+  - group: 'external-secrets.io'
+    kind: ExternalSecret
+  - group: 'external-secrets.io'
+    kind: SecretStore
+    
+  # RBAC roles for development environment
   roles:
   - name: dev-admin
-    description: Development environment admin
+    description: Development environment administrators
     policies:
     - p, proj:dev-project:dev-admin, applications, *, dev-project/*, allow
     - p, proj:dev-project:dev-admin, repositories, *, *, allow
     groups:
     - dev-team
+    - platform-team
+    
+  - name: dev-developer
+    description: Developers with limited access
+    policies:
+    - p, proj:dev-project:dev-developer, applications, get, dev-project/*, allow
+    - p, proj:dev-project:dev-developer, applications, sync, dev-project/*, allow
+    - p, proj:dev-project:dev-developer, applications, action/*, dev-project/*, allow
+    groups:
+    - developers
+    - qa-team
+    
   - name: dev-readonly
-    description: Development environment read-only access
+    description: Read-only access to development
     policies:
     - p, proj:dev-project:dev-readonly, applications, get, dev-project/*, allow
-    - p, proj:dev-project:dev-readonly, applications, sync, dev-project/*, allow
     groups:
-    - dev-readonly
-  syncWindows:
-  - kind: allow
-    schedule: '* * * * *'
-    duration: 24h
-    applications:
-    - '*'
-    manualSync: true
+    - business-team
+    - managers

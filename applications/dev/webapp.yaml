@@ -1,0 +1,109 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: webapp-dev
+  namespace: argocd
+  labels:
+    app: webapp
+    environment: dev
+    team: business
+spec:
+  project: dev-project
+  source:
+    repoURL: http://s3.devkuban.com/helm-charts
+    chart: webapp
+    targetRevision: 1.0.9
+    helm:
+      values: |
+        # Development environment configuration
+        global:
+          environment: dev
+          cluster: dev-cluster
+        
+        # Basic deployment settings
+        replicaCount: 2
+        
+        # Image configuration
+        image:
+          repository: nginx
+          pullPolicy: IfNotPresent
+          tag: "1.21-alpine"
+        
+        # Service configuration
+        service:
+          type: ClusterIP
+          port: 80
+          targetPort: 80
+        
+        # Ingress for development
+        ingress:
+          enabled: true
+          className: "nginx"
+          annotations:
+            nginx.ingress.kubernetes.io/ssl-redirect: "false"
+            nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+          hosts:
+            - host: webapp-dev.devkuban.com
+              paths:
+                - path: /
+                  pathType: Prefix
+        
+        # Resource limits for development
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        
+        # Health checks
+        livenessProbe:
+          enabled: true
+        
+        readinessProbe:
+          enabled: true
+        
+        # Development-specific settings
+        autoscaling:
+          enabled: false
+        
+        networkPolicy:
+          enabled: false
+        
+        persistence:
+          enabled: false
+        
+        # Service account
+        serviceAccount:
+          create: true
+        
+        # Security context (relaxed for dev)
+        podSecurityContext: {}
+        securityContext:
+          runAsNonRoot: false
+          readOnlyRootFilesystem: false
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: business-apps-dev
+    
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+        
+  ignoreDifferences:
+    - group: ""
+      kind: "Service"
+      jsonPointers:
+        - /spec/clusterIP

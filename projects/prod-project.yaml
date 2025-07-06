@@ -5,19 +5,28 @@ metadata:
   namespace: argocd
   labels:
     environment: prod
+    type: business-applications
 spec:
-  description: Production environment project
+  description: Production environment for business applications
+  
+  # Source repositories
   sourceRepos:
-  - 'git@github.com:Bakmurat/Applications.git'
-  - 'https://github.com/Bakmurat/Applications.git'
+  - 'http://s3.devkuban.com/helm-charts'  # MinIO Helm repository
+  - 'git@github.com:Bakmurat/Applications.git'  # This repo for app definitions
+  
+  # Destination clusters and namespaces
   destinations:
-  - namespace: 'sample-apps-prod'
-    server: https://kubernetes.default.svc
+  - namespace: 'business-apps-prod'
+    server: '*'  # Allow deployment to any cluster
   - namespace: 'argocd'
-    server: https://kubernetes.default.svc
+    server: '*'  # For app-of-apps pattern
+    
+  # Cluster-level resources (minimal for business apps)
   clusterResourceWhitelist:
   - group: ''
     kind: Namespace
+    
+  # Namespace-level resources (business application resources)
   namespaceResourceWhitelist:
   - group: ''
     kind: Service
@@ -25,6 +34,8 @@ spec:
     kind: ConfigMap
   - group: ''
     kind: Secret
+  - group: ''
+    kind: PersistentVolumeClaim
   - group: 'apps'
     kind: Deployment
   - group: 'apps'
@@ -33,21 +44,46 @@ spec:
     kind: Pod
   - group: 'networking.k8s.io'
     kind: Ingress
-  - group: 'argoproj.io'
-    kind: Application
+  - group: 'networking.k8s.io'
+    kind: NetworkPolicy
+  - group: 'autoscaling'
+    kind: HorizontalPodAutoscaler
+  - group: 'policy'
+    kind: PodDisruptionBudget
+  - group: 'monitoring.coreos.com'
+    kind: ServiceMonitor
+  - group: 'external-secrets.io'
+    kind: ExternalSecret
+  - group: 'external-secrets.io'
+    kind: SecretStore
+    
+  # RBAC roles for production environment (strict access)
   roles:
   - name: prod-admin
-    description: Production environment admin
+    description: Production environment administrators
     policies:
     - p, proj:prod-project:prod-admin, applications, *, prod-project/*, allow
     - p, proj:prod-project:prod-admin, repositories, *, *, allow
     groups:
-    - platform-team
     - sre-team
+    - platform-team
+    
+  - name: prod-operator
+    description: Production operators with limited sync access
+    policies:
+    - p, proj:prod-project:prod-operator, applications, get, prod-project/*, allow
+    - p, proj:prod-project:prod-operator, applications, sync, prod-project/*, allow
+    - p, proj:prod-project:prod-operator, applications, action/restart, prod-project/*, allow
+    groups:
+    - prod-operators
+    - sre-team
+    
   - name: prod-readonly
-    description: Production environment read-only access
+    description: Read-only access to production
     policies:
     - p, proj:prod-project:prod-readonly, applications, get, prod-project/*, allow
     groups:
-    - prod-readonly
     - dev-team
+    - qa-team
+    - business-team
+    - managers

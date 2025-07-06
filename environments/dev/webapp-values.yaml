@@ -1,0 +1,57 @@
+# Development environment values for webapp
+# Stored in this Git repo and referenced by ApplicationSet
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+# Ingress configuration (no SSL for dev)
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+
+# Resource limits for development
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Health checks
+livenessProbe:
+  enabled: true
+
+readinessProbe:
+  enabled: true
+
+# Development-specific settings
+autoscaling:
+  enabled: false
+
+networkPolicy:
+  enabled: false
+
+persistence:
+  enabled: false
+
+# Service account
+serviceAccount:
+  create: true
+
+# Security context (relaxed for dev)
+podSecurityContext: {}
+
+securityContext:
+  runAsNonRoot: false
+  readOnlyRootFilesystem: false
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: false

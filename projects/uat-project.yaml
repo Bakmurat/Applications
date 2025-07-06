@@ -5,19 +5,28 @@ metadata:
   namespace: argocd
   labels:
     environment: uat
+    type: business-applications
 spec:
-  description: UAT environment project
+  description: UAT environment for business applications
+  
+  # Source repositories
   sourceRepos:
-  - 'git@github.com:Bakmurat/Applications.git'
-  - 'https://github.com/Bakmurat/Applications.git'
+  - 'http://s3.devkuban.com/helm-charts'  # MinIO Helm repository
+  - 'git@github.com:Bakmurat/Applications.git'  # This repo for app definitions
+  
+  # Destination clusters and namespaces
   destinations:
-  - namespace: 'sample-apps-uat'
-    server: https://kubernetes.default.svc
+  - namespace: 'business-apps-uat'
+    server: '*'  # Allow deployment to any cluster
   - namespace: 'argocd'
-    server: https://kubernetes.default.svc
+    server: '*'  # For app-of-apps pattern
+    
+  # Cluster-level resources (minimal for business apps)
   clusterResourceWhitelist:
   - group: ''
     kind: Namespace
+    
+  # Namespace-level resources (business application resources)
   namespaceResourceWhitelist:
   - group: ''
     kind: Service
@@ -25,6 +34,8 @@ spec:
     kind: ConfigMap
   - group: ''
     kind: Secret
+  - group: ''
+    kind: PersistentVolumeClaim
   - group: 'apps'
     kind: Deployment
   - group: 'apps'
@@ -33,34 +44,45 @@ spec:
     kind: Pod
   - group: 'networking.k8s.io'
     kind: Ingress
-  - group: 'argoproj.io'
-    kind: Application
+  - group: 'networking.k8s.io'
+    kind: NetworkPolicy
+  - group: 'autoscaling'
+    kind: HorizontalPodAutoscaler
+  - group: 'policy'
+    kind: PodDisruptionBudget
+  - group: 'monitoring.coreos.com'
+    kind: ServiceMonitor
+  - group: 'external-secrets.io'
+    kind: ExternalSecret
+  - group: 'external-secrets.io'
+    kind: SecretStore
+    
+  # RBAC roles for UAT environment
   roles:
   - name: uat-admin
-    description: UAT environment admin
+    description: UAT environment administrators
     policies:
     - p, proj:uat-project:uat-admin, applications, *, uat-project/*, allow
     - p, proj:uat-project:uat-admin, repositories, *, *, allow
     groups:
     - uat-team
     - platform-team
-  - name: uat-deployer
-    description: UAT environment deployer
+    
+  - name: uat-tester
+    description: QA testers with sync access
     policies:
-    - p, proj:uat-project:uat-deployer, applications, get, uat-project/*, allow
-    - p, proj:uat-project:uat-deployer, applications, sync, uat-project/*, allow
+    - p, proj:uat-project:uat-tester, applications, get, uat-project/*, allow
+    - p, proj:uat-project:uat-tester, applications, sync, uat-project/*, allow
+    - p, proj:uat-project:uat-tester, applications, action/*, uat-project/*, allow
     groups:
-    - uat-deployers
-  syncWindows:
-  - kind: allow
-    schedule: '0 9-17 * * 1-5'
-    duration: 8h
-    applications:
-    - '*'
-    manualSync: true
-  - kind: deny
-    schedule: '0 18-8 * * *'
-    duration: 14h
-    applications:
-    - '*'
-    manualSync: false
+    - qa-team
+    - testers
+    
+  - name: uat-readonly
+    description: Read-only access to UAT
+    policies:
+    - p, proj:uat-project:uat-readonly, applications, get, uat-project/*, allow
+    groups:
+    - dev-team
+    - business-team
+    - managers
