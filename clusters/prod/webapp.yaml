@@ -1,0 +1,80 @@
+# Production Cluster Bootstrap
+# Deploy this only in the PROD cluster ArgoCD
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: webapp-prod
+  namespace: argocd
+  labels:
+    app: webapp
+    environment: prod
+    cluster: prod
+    team: business
+spec:
+  project: prod-project
+  source:
+    repoURL: http://s3.devkuban.com/helm-charts
+    chart: webapp
+    targetRevision: 1.0.9
+    helm:
+      valueFiles:
+      - $values/environments/prod/webapp-values.yaml
+      values: |
+        global:
+          environment: prod
+          cluster: prod-cluster
+        
+        replicaCount: 5
+        
+        image:
+          repository: nginx
+          pullPolicy: IfNotPresent
+          tag: "1.21-alpine"
+        
+        ingress:
+          enabled: true
+          className: "nginx"
+          annotations:
+            nginx.ingress.kubernetes.io/ssl-redirect: "true"
+            cert-manager.io/cluster-issuer: "letsencrypt-prod"
+            nginx.ingress.kubernetes.io/rate-limit: "100"
+          hosts:
+            - host: webapp.devkuban.com
+              paths:
+                - path: /
+                  pathType: Prefix
+          tls:
+            - secretName: webapp-prod-tls
+              hosts:
+                - webapp.devkuban.com
+
+  destination:
+    server: https://kubernetes.default.svc  # Local cluster (prod)
+    namespace: business-apps-prod
+    
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+        
+  ignoreDifferences:
+    - group: ""
+      kind: "Service"
+      jsonPointers:
+        - /spec/clusterIP
+    - group: "apps"
+      kind: "Deployment"
+      jsonPointers:
+        - /spec/replicas
+      managedFieldsManagers:
+        - kube-controller-manager

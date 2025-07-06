@@ -1,0 +1,328 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: business-apps-multi-env
+  namespace: argocd
+  labels:
+    type: business-applications
+spec:
+  generators:
+  # List generator for environments and applications
+  - list:
+      elements:
+      # Development environment
+      - environment: dev
+        project: dev-project
+        namespace: business-apps-dev
+        server: https://kubernetes.default.svc
+        app: webapp
+        chartVersion: "1.0.9"
+        replicas: "2"
+        domain: webapp-dev.devkuban.com
+        ssl: "false"
+        autoscaling: "false"
+        networkPolicy: "false"
+        persistence: "false"
+        resources: |
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        security: |
+          podSecurityContext: {}
+          securityContext:
+            runAsNonRoot: false
+            readOnlyRootFilesystem: false
+      
+      # UAT environment
+      - environment: uat
+        project: uat-project
+        namespace: business-apps-uat
+        server: https://kubernetes.default.svc
+        app: webapp
+        chartVersion: "1.0.9"
+        replicas: "3"
+        domain: webapp-uat.devkuban.com
+        ssl: "true"
+        autoscaling: "true"
+        networkPolicy: "false"
+        persistence: "false"
+        resources: |
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+        security: |
+          podSecurityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1001
+      
+      # Production environment
+      - environment: prod
+        project: prod-project
+        namespace: business-apps-prod
+        server: https://kubernetes.default.svc
+        app: webapp
+        chartVersion: "1.0.9"
+        replicas: "5"
+        domain: webapp.devkuban.com
+        ssl: "true"
+        autoscaling: "true"
+        networkPolicy: "true"
+        persistence: "true"
+        resources: |
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 512Mi
+        security: |
+          podSecurityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            fsGroup: 1001
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1001
+
+  template:
+    metadata:
+      name: '{{app}}-{{environment}}'
+      labels:
+        app: '{{app}}'
+        environment: '{{environment}}'
+        team: business
+        chart-version: '{{chartVersion}}'
+    spec:
+      project: '{{project}}'
+      source:
+        repoURL: http://s3.devkuban.com/helm-charts
+        chart: '{{app}}'
+        targetRevision: '{{chartVersion}}'
+        helm:
+          values: |
+            # Environment: {{environment}}
+            global:
+              environment: {{environment}}
+              cluster: {{environment}}-cluster
+            
+            replicaCount: {{replicas}}
+            
+            image:
+              repository: nginx
+              pullPolicy: IfNotPresent
+              tag: "1.21-alpine"
+            
+            service:
+              type: ClusterIP
+              port: 80
+              targetPort: 80
+              {{- if eq "{{environment}}" "prod" }}
+              annotations:
+                service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+              {{- end }}
+            
+            ingress:
+              enabled: true
+              className: "nginx"
+              annotations:
+                {{- if eq "{{ssl}}" "false" }}
+                nginx.ingress.kubernetes.io/ssl-redirect: "false"
+                nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+                {{- else }}
+                nginx.ingress.kubernetes.io/ssl-redirect: "true"
+                nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+                {{- if eq "{{environment}}" "prod" }}
+                cert-manager.io/cluster-issuer: "letsencrypt-prod"
+                nginx.ingress.kubernetes.io/rate-limit: "100"
+                {{- else }}
+                cert-manager.io/cluster-issuer: "letsencrypt-staging"
+                {{- end }}
+                {{- end }}
+              hosts:
+                - host: {{domain}}
+                  paths:
+                    - path: /
+                      pathType: Prefix
+              {{- if eq "{{ssl}}" "true" }}
+              tls:
+                - secretName: {{app}}-{{environment}}-tls
+                  hosts:
+                    - {{domain}}
+              {{- end }}
+            
+            resources:
+              {{resources | nindent 14}}
+            
+            livenessProbe:
+              enabled: true
+              {{- if eq "{{environment}}" "prod" }}
+              httpGet:
+                path: /
+                port: http
+              initialDelaySeconds: 60
+              periodSeconds: 30
+              timeoutSeconds: 5
+              failureThreshold: 3
+              {{- end }}
+            
+            readinessProbe:
+              enabled: true
+              {{- if eq "{{environment}}" "prod" }}
+              httpGet:
+                path: /
+                port: http
+              initialDelaySeconds: 10
+              periodSeconds: 10
+              timeoutSeconds: 3
+              failureThreshold: 3
+              {{- end }}
+            
+            {{- if eq "{{environment}}" "prod" }}
+            startupProbe:
+              enabled: true
+              httpGet:
+                path: /
+                port: http
+              initialDelaySeconds: 10
+              periodSeconds: 10
+              timeoutSeconds: 3
+              failureThreshold: 30
+            {{- end }}
+            
+            autoscaling:
+              enabled: {{autoscaling}}
+              {{- if eq "{{autoscaling}}" "true" }}
+              {{- if eq "{{environment}}" "prod" }}
+              minReplicas: 3
+              maxReplicas: 20
+              targetCPUUtilizationPercentage: 70
+              targetMemoryUtilizationPercentage: 80
+              {{- else if eq "{{environment}}" "uat" }}
+              minReplicas: 2
+              maxReplicas: 8
+              targetCPUUtilizationPercentage: 80
+              {{- end }}
+              {{- end }}
+            
+            networkPolicy:
+              enabled: {{networkPolicy}}
+              {{- if eq "{{networkPolicy}}" "true" }}
+              ingress:
+                - from:
+                    - namespaceSelector:
+                        matchLabels:
+                          name: ingress-nginx
+                  ports:
+                    - protocol: TCP
+                      port: 80
+              {{- end }}
+            
+            persistence:
+              enabled: {{persistence}}
+              {{- if eq "{{persistence}}" "true" }}
+              accessMode: ReadWriteOnce
+              size: 10Gi
+              storageClass: "gp3"
+              {{- end }}
+            
+            serviceAccount:
+              create: true
+              {{- if eq "{{environment}}" "prod" }}
+              annotations:
+                eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/{{app}}-prod-role
+              {{- end }}
+            
+            {{- if ne "{{environment}}" "dev" }}
+            podDisruptionBudget:
+              enabled: true
+              {{- if eq "{{environment}}" "prod" }}
+              minAvailable: 2
+              {{- else }}
+              minAvailable: 1
+              {{- end }}
+            {{- end }}
+            
+            {{security | nindent 12}}
+            
+            {{- if eq "{{environment}}" "prod" }}
+            affinity:
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                      - key: app.kubernetes.io/name
+                        operator: In
+                        values:
+                        - {{app}}
+                    topologyKey: kubernetes.io/hostname
+            
+            nodeSelector:
+              node-type: production
+            
+            tolerations:
+              - key: "production-only"
+                operator: "Equal"
+                value: "true"
+                effect: "NoSchedule"
+            
+            extraVolumes:
+              - name: tmp-volume
+                emptyDir: {}
+              - name: cache-volume
+                emptyDir: {}
+            
+            extraVolumeMounts:
+              - name: tmp-volume
+                mountPath: /tmp
+              - name: cache-volume
+                mountPath: /var/cache/nginx
+            {{- end }}
+
+      destination:
+        server: '{{server}}'
+        namespace: '{{namespace}}'
+        
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - RespectIgnoreDifferences=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+            
+      ignoreDifferences:
+        - group: ""
+          kind: "Service"
+          jsonPointers:
+            - /spec/clusterIP
+        {{- if ne "{{environment}}" "dev" }}
+        - group: "apps"
+          kind: "Deployment"
+          jsonPointers:
+            - /spec/replicas
+          managedFieldsManagers:
+            - kube-controller-manager
+        {{- end }}

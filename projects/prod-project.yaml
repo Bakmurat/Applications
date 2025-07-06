@@ -21,41 +21,15 @@ spec:
   - namespace: 'argocd'
     server: '*'  # For app-of-apps pattern
     
-  # Cluster-level resources (minimal for business apps)
+  # Allow all cluster-level resources
   clusterResourceWhitelist:
-  - group: ''
-    kind: Namespace
+  - group: '*'
+    kind: '*'
     
-  # Namespace-level resources (business application resources)
+  # Allow all namespace-level resources
   namespaceResourceWhitelist:
-  - group: ''
-    kind: Service
-  - group: ''
-    kind: ConfigMap
-  - group: ''
-    kind: Secret
-  - group: ''
-    kind: PersistentVolumeClaim
-  - group: 'apps'
-    kind: Deployment
-  - group: 'apps'
-    kind: ReplicaSet
-  - group: ''
-    kind: Pod
-  - group: 'networking.k8s.io'
-    kind: Ingress
-  - group: 'networking.k8s.io'
-    kind: NetworkPolicy
-  - group: 'autoscaling'
-    kind: HorizontalPodAutoscaler
-  - group: 'policy'
-    kind: PodDisruptionBudget
-  - group: 'monitoring.coreos.com'
-    kind: ServiceMonitor
-  - group: 'external-secrets.io'
-    kind: ExternalSecret
-  - group: 'external-secrets.io'
-    kind: SecretStore
+  - group: '*'
+    kind: '*'
     
   # RBAC roles for production environment (strict access)
   roles:

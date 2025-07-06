@@ -1,3 +1,16 @@
+# ApplicationSet for Multi-Environment Management
+# WARNING: This ApplicationSet will deploy ALL environments to the cluster where it's applied
+# For proper multi-cluster setup, use the cluster-specific manifests in clusters/ directory
+# This ApplicationSet is useful for:
+# 1. Single-cluster demo environments
+# 2. Development setups where you want all environments in one cluster
+# 3. Testing the ApplicationSet pattern
+#
+# For production multi-cluster setup, use:
+# - clusters/dev/deploy-dev.sh in DEV cluster
+# - clusters/uat/deploy-uat.sh in UAT cluster  
+# - clusters/prod/deploy-prod.sh in PROD cluster
+
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -5,6 +18,7 @@ metadata:
   namespace: argocd
   labels:
     type: business-applications
+    use-case: single-cluster-demo
 spec:
   generators:
   # List generator for environments and applications

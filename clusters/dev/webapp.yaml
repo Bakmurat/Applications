@@ -1,0 +1,68 @@
+# Development Cluster Bootstrap
+# Deploy this only in the DEV cluster ArgoCD
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: webapp-dev
+  namespace: argocd
+  labels:
+    app: webapp
+    environment: dev
+    cluster: dev
+    team: business
+spec:
+  project: dev-project
+  source:
+    repoURL: http://s3.devkuban.com/helm-charts
+    chart: webapp
+    targetRevision: 1.0.9
+    helm:
+      valueFiles:
+      - $values/environments/dev/webapp-values.yaml
+      values: |
+        global:
+          environment: dev
+          cluster: dev-cluster
+        
+        replicaCount: 2
+        
+        image:
+          repository: nginx
+          pullPolicy: IfNotPresent
+          tag: "1.21-alpine"
+        
+        ingress:
+          enabled: true
+          className: "nginx"
+          annotations:
+            nginx.ingress.kubernetes.io/ssl-redirect: "false"
+          hosts:
+            - host: webapp-dev.devkuban.com
+              paths:
+                - path: /
+                  pathType: Prefix
+
+  destination:
+    server: https://kubernetes.default.svc  # Local cluster (dev)
+    namespace: business-apps-dev
+    
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+        
+  ignoreDifferences:
+    - group: ""
+      kind: "Service"
+      jsonPointers:
+        - /spec/clusterIP
