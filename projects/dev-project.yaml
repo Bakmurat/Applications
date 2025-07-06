@@ -13,6 +13,7 @@ spec:
   sourceRepos:
   - 'http://s3.devkuban.com/helm-charts'  # MinIO Helm repository
   - 'git@github.com:Bakmurat/Applications.git'  # This repo for app definitions
+  - 'https://github.com/Bakmurat/Applications.git'  # HTTPS access for ArgoCD
   
   # Destination clusters and namespaces
   destinations:

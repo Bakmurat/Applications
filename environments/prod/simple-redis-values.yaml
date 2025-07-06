@@ -1,0 +1,50 @@
+# Production Environment Values for simple-redis
+# Optimized for production workloads with high availability
+
+replicaCount: 2  # High availability with multiple replicas
+
+image:
+  repository: redis
+  tag: "7.0-alpine"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 6379
+
+# Production resource limits
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+# Production-specific configuration
+nodeSelector: {}
+tolerations: []
+
+# Pod anti-affinity for high availability
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - simple-redis
+        topologyKey: kubernetes.io/hostname
+
+# Labels for production
+podLabels:
+  environment: prod
+  tier: production
+
+# Production persistence (if supported by chart)
+persistence:
+  enabled: true
+  size: 8Gi

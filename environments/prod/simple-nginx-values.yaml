@@ -1,0 +1,54 @@
+# Production Environment Values for simple-nginx
+# Optimized for production workloads with proper resource allocation
+
+replicaCount: 3
+
+image:
+  repository: nginx
+  tag: "1.21-alpine"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+# Production resource limits
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+# Production-specific configuration
+nodeSelector: {}
+tolerations: []
+
+# Pod anti-affinity for high availability
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - simple-nginx
+        topologyKey: kubernetes.io/hostname
+
+# Labels for production
+podLabels:
+  environment: prod
+  tier: production
+
+# Environment variable
+env:
+  - name: ENVIRONMENT
+    value: "production"

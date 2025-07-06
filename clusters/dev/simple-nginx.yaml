@@ -4,10 +4,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: webapp-dev
+  name: simple-nginx-dev
   namespace: argocd
   labels:
-    app: webapp
+    app: simple-nginx
     environment: dev
     cluster: dev
     team: business
@@ -15,33 +15,21 @@ spec:
   project: dev-project
   source:
     repoURL: http://s3.devkuban.com/helm-charts
-    chart: webapp
-    targetRevision: 1.0.9
+    chart: simple-nginx
+    targetRevision: 1.2.0
     helm:
       valueFiles:
-      - $values/environments/dev/webapp-values.yaml
-      values: |
-        global:
-          environment: dev
-          cluster: dev-cluster
-        
-        replicaCount: 2
-        
-        image:
-          repository: nginx
-          pullPolicy: IfNotPresent
-          tag: "1.21-alpine"
-        
-        ingress:
-          enabled: true
-          className: "nginx"
-          annotations:
-            nginx.ingress.kubernetes.io/ssl-redirect: "false"
-          hosts:
-            - host: webapp-dev.devkuban.com
-              paths:
-                - path: /
-                  pathType: Prefix
+      - $values/environments/dev/simple-nginx-values.yaml
+  sources:
+    - repoURL: http://s3.devkuban.com/helm-charts
+      chart: simple-nginx
+      targetRevision: 1.2.0
+      helm:
+        valueFiles:
+          - $values/environments/dev/simple-nginx-values.yaml
+    - repoURL: https://github.com/your-org/business-apps-gitops.git
+      targetRevision: HEAD
+      ref: values
 
   destination:
     server: https://kubernetes.default.svc  # Local cluster (dev)

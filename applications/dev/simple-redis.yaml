@@ -1,0 +1,65 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: simple-redis-dev
+  namespace: argocd
+  labels:
+    app: simple-redis
+    environment: dev
+    team: business
+spec:
+  project: dev-project
+  source:
+    repoURL: http://s3.devkuban.com/helm-charts
+    chart: simple-redis
+    targetRevision: 1.0.0
+    helm:
+      values: |
+        # Development Environment Values for simple-redis
+        # Minimal configuration for development
+
+        replicaCount: 1
+
+        image:
+          repository: redis
+          tag: "7.0-alpine"
+          pullPolicy: IfNotPresent
+
+        service:
+          type: ClusterIP
+          port: 6379
+
+        # Development resource limits (minimal)
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+
+        # Labels for development
+        podLabels:
+          environment: dev
+          tier: development
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: business-apps-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  ignoreDifferences:
+    - group: ""
+      kind: "Service"
+      jsonPointers:
+        - /spec/clusterIP

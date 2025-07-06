@@ -1,0 +1,65 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: simple-redis-uat
+  namespace: argocd
+  labels:
+    app: simple-redis
+    environment: uat
+    team: business
+spec:
+  project: uat-project
+  source:
+    repoURL: http://s3.devkuban.com/helm-charts
+    chart: simple-redis
+    targetRevision: 1.0.0
+    helm:
+      values: |
+        # UAT Environment Values for simple-redis
+        # Configuration for user acceptance testing
+
+        replicaCount: 1
+
+        image:
+          repository: redis
+          tag: "7.0-alpine"
+          pullPolicy: IfNotPresent
+
+        service:
+          type: ClusterIP
+          port: 6379
+
+        # UAT resource limits (moderate)
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+
+        # Labels for UAT
+        podLabels:
+          environment: uat
+          tier: testing
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: business-apps-uat
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  ignoreDifferences:
+    - group: ""
+      kind: "Service"
+      jsonPointers:
+        - /spec/clusterIP

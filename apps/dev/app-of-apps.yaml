@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: business-apps-dev
+  namespace: argocd
+  labels:
+    app: app-of-apps
+    environment: dev
+    team: business
+spec:
+  project: dev-project
+  source:
+    repoURL: https://github.com/Bakmurat/Applications.git
+    path: applications/dev
+    targetRevision: HEAD
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

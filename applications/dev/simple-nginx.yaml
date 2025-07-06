@@ -1,0 +1,49 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: simple-nginx-dev
+  namespace: argocd
+  labels:
+    app: simple-nginx
+    environment: dev
+    team: business
+spec:
+  project: dev-project
+  source:
+    repoURL: http://s3.devkuban.com/helm-charts
+    chart: simple-nginx
+    targetRevision: 1.2.0
+    helm:
+      valueFiles:
+        - $values/environments/dev/simple-nginx-values.yaml
+  sources:
+    - repoURL: http://s3.devkuban.com/helm-charts
+      chart: simple-nginx
+      targetRevision: 1.2.0
+      helm:
+        valueFiles:
+          - $values/environments/dev/simple-nginx-values.yaml
+    - repoURL: https://github.com/your-org/business-apps-gitops.git
+      targetRevision: HEAD
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: business-apps-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  ignoreDifferences:
+    - group: ""
+      kind: "Service"
+      jsonPointers:
+        - /spec/clusterIP

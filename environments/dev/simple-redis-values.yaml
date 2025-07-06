@@ -1,0 +1,31 @@
+# Development Environment Values for simple-redis
+# Minimal configuration for development
+
+replicaCount: 1
+
+image:
+  repository: redis
+  tag: "7.0-alpine"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 6379
+
+# Development resource limits (minimal)
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+# Labels for development
+podLabels:
+  environment: dev
+  tier: development
+
+# Development-specific configuration
+persistence:
+  enabled: false  # No persistence needed in dev
