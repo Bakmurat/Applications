@@ -94,16 +94,16 @@ print_status "Applied prod-project"
 sleep 3
 
 # Deploy production applications
-echo -e "${BLUE}📱 Deploying production applications...${NC}"
-kubectl apply -f apps/prod/
-print_status "Applied production applications"
+echo -e "${BLUE}📱 Deploying production app-of-apps...${NC}"
+kubectl apply -f app-of-apps/prod-apps.yaml
+print_status "Applied prod-apps (app-of-apps pattern)"
 
 # Check status
 echo -e "${BLUE}📊 Checking deployment status...${NC}"
 sleep 5
 
 echo -e "${YELLOW}📋 ArgoCD Applications:${NC}"
-kubectl get applications -n $ARGOCD_NAMESPACE | grep -E "(NAME|.*-prod)" || echo "No prod applications found yet"
+kubectl get applications -n $ARGOCD_NAMESPACE | grep -E "(NAME|.*-prod|prod-apps)" || echo "No prod applications found yet"
 
 echo ""
 echo -e "${GREEN}🎉 Production Cluster Deployment Complete!${NC}"
@@ -112,8 +112,9 @@ echo ""
 echo -e "${BLUE}📋 What was deployed:${NC}"
 echo "✅ MinIO Helm repository configured"
 echo "✅ Production project created"
-echo "✅ simple-nginx-prod application deployed (3 replicas)"
-echo "✅ simple-redis-prod application deployed (2 replicas)"
+echo "✅ prod-apps (app-of-apps) deployed"
+echo "✅ simple-nginx-prod application (via app-of-apps)"
+echo "✅ simple-redis-prod application (via app-of-apps)"
 echo ""
 echo -e "${BLUE}🔗 Access:${NC}"
 echo "• ArgoCD UI: Check for prod applications"

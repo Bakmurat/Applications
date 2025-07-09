@@ -85,16 +85,16 @@ print_status "Applied dev-project"
 sleep 3
 
 # Deploy development applications
-echo -e "${BLUE}📱 Deploying development applications...${NC}"
-kubectl apply -f apps/dev/
-print_status "Applied development applications"
+echo -e "${BLUE}📱 Deploying development app-of-apps...${NC}"
+kubectl apply -f app-of-apps/dev-apps.yaml
+print_status "Applied dev-apps (app-of-apps pattern)"
 
 # Check status
 echo -e "${BLUE}📊 Checking deployment status...${NC}"
 sleep 5
 
 echo -e "${YELLOW}📋 ArgoCD Applications:${NC}"
-kubectl get applications -n $ARGOCD_NAMESPACE | grep -E "(NAME|.*-dev)" || echo "No dev applications found yet"
+kubectl get applications -n $ARGOCD_NAMESPACE | grep -E "(NAME|.*-dev|dev-apps)" || echo "No dev applications found yet"
 
 echo ""
 echo -e "${GREEN}🎉 Development Cluster Deployment Complete!${NC}"
@@ -103,8 +103,9 @@ echo ""
 echo -e "${BLUE}📋 What was deployed:${NC}"
 echo "✅ MinIO Helm repository configured"
 echo "✅ Development project created"
-echo "✅ simple-nginx-dev application deployed"
-echo "✅ simple-redis-dev application deployed"
+echo "✅ dev-apps (app-of-apps) deployed"
+echo "✅ simple-nginx-dev application (via app-of-apps)"
+echo "✅ simple-redis-dev application (via app-of-apps)"
 echo ""
 echo -e "${BLUE}🔗 Access:${NC}"
 echo "• ArgoCD UI: Check for dev applications"

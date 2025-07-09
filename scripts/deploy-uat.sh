@@ -85,16 +85,16 @@ print_status "Applied uat-project"
 sleep 3
 
 # Deploy UAT applications
-echo -e "${BLUE}📱 Deploying UAT applications...${NC}"
-kubectl apply -f apps/uat/
-print_status "Applied UAT applications"
+echo -e "${BLUE}📱 Deploying UAT app-of-apps...${NC}"
+kubectl apply -f app-of-apps/uat-apps.yaml
+print_status "Applied uat-apps (app-of-apps pattern)"
 
 # Check status
 echo -e "${BLUE}📊 Checking deployment status...${NC}"
 sleep 5
 
 echo -e "${YELLOW}📋 ArgoCD Applications:${NC}"
-kubectl get applications -n $ARGOCD_NAMESPACE | grep -E "(NAME|.*-uat)" || echo "No uat applications found yet"
+kubectl get applications -n $ARGOCD_NAMESPACE | grep -E "(NAME|.*-uat|uat-apps)" || echo "No uat applications found yet"
 
 echo ""
 echo -e "${GREEN}🎉 UAT Cluster Deployment Complete!${NC}"
@@ -103,8 +103,9 @@ echo ""
 echo -e "${BLUE}📋 What was deployed:${NC}"
 echo "✅ MinIO Helm repository configured"
 echo "✅ UAT project created"
-echo "✅ simple-nginx-uat application deployed"
-echo "✅ simple-redis-uat application deployed"
+echo "✅ uat-apps (app-of-apps) deployed"
+echo "✅ simple-nginx-uat application (via app-of-apps)"
+echo "✅ simple-redis-uat application (via app-of-apps)"
 echo ""
 echo -e "${BLUE}🔗 Access:${NC}"
 echo "• ArgoCD UI: Check for uat applications"
