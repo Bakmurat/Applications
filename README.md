@@ -57,12 +57,12 @@ kubectl config use-context prodcluster
 ### simple-nginx
 - **Chart**: `simple-nginx:1.2.0` from MinIO Helm repository
 - **Environments**: dev (1 replica), uat (2 replicas), prod (3 replicas)
-- **Namespace**: `business-apps-{env}`
+- **Namespace**: `simple-nginx` (consistent across all environments)
 
 ### simple-redis
 - **Chart**: `simple-redis:1.0.0` from MinIO Helm repository
 - **Environments**: dev (1 replica), uat (1 replica), prod (2 replicas)
-- **Namespace**: `business-apps-{env}`
+- **Namespace**: `simple-redis` (consistent across all environments)
 
 ## 🛡️ Security & RBAC
 

@@ -21,7 +21,7 @@ spec:
       ref: values
   destination:
     server: https://kubernetes.default.svc
-    namespace: business-apps-uat
+    namespace: simple-nginx
   syncPolicy:
     automated:
       prune: true

@@ -17,7 +17,9 @@ spec:
   
   # Destination clusters and namespaces
   destinations:
-  - namespace: 'business-apps-prod'
+  - namespace: 'simple-nginx'
+    server: '*'  # Allow deployment to any cluster
+  - namespace: 'simple-redis'
     server: '*'  # Allow deployment to any cluster
   - namespace: 'argocd'
     server: '*'  # For app-of-apps pattern

@@ -21,7 +21,7 @@ spec:
       ref: values
   destination:
     server: https://kubernetes.default.svc
-    namespace: business-apps-prod
+    namespace: simple-redis
   syncPolicy:
     automated:
       prune: true
