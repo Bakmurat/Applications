@@ -1,6 +1,4 @@
 # UAT Environment Values for simple-nginx
-# Production-like environment for testing
-
 replicaCount: 2
 
 image:
@@ -8,15 +6,10 @@ image:
   tag: "1.21-alpine"
   pullPolicy: IfNotPresent
 
-nameOverride: ""
-fullnameOverride: ""
-
 service:
   type: ClusterIP
   port: 80
-  targetPort: 80
 
-# UAT resource limits - moderate
 resources:
   limits:
     cpu: 200m
@@ -25,17 +18,10 @@ resources:
     cpu: 100m
     memory: 128Mi
 
-# UAT-specific configuration
-nodeSelector: {}
-tolerations: []
-affinity: {}
-
-# Labels for UAT
 podLabels:
   environment: uat
   tier: testing
 
-# Environment variable
 env:
   - name: ENVIRONMENT
     value: "uat"

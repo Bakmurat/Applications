@@ -1,6 +1,4 @@
 # Development Environment Values for simple-nginx
-# Optimized for development workflow with relaxed security
-
 replicaCount: 1
 
 image:
@@ -8,15 +6,10 @@ image:
   tag: "1.21-alpine"
   pullPolicy: IfNotPresent
 
-nameOverride: ""
-fullnameOverride: ""
-
 service:
   type: ClusterIP
   port: 80
-  targetPort: 80
 
-# Development resource limits - minimal
 resources:
   limits:
     cpu: 100m
@@ -25,17 +18,10 @@ resources:
     cpu: 50m
     memory: 64Mi
 
-# Development-specific configuration
-nodeSelector: {}
-tolerations: []
-affinity: {}
-
-# Labels for development
 podLabels:
   environment: dev
   tier: development
 
-# Environment variable
 env:
   - name: ENVIRONMENT
     value: "development"

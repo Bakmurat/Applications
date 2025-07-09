@@ -1,21 +1,27 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: business-apps-prod
+  name: simple-redis-prod
   namespace: argocd
   labels:
-    app: app-of-apps
+    app: simple-redis
     environment: prod
     team: business
 spec:
   project: prod-project
-  source:
-    repoURL: https://github.com/Bakmurat/Applications.git
-    path: applications/prod
-    targetRevision: HEAD
+  sources:
+    - repoURL: http://s3.devkuban.com/helm-charts
+      chart: simple-redis
+      targetRevision: 1.0.0
+      helm:
+        valueFiles:
+          - $values/values/prod/simple-redis-values.yaml
+    - repoURL: https://github.com/Bakmurat/Applications.git
+      targetRevision: HEAD
+      ref: values
   destination:
     server: https://kubernetes.default.svc
-    namespace: argocd
+    namespace: business-apps-prod
   syncPolicy:
     automated:
       prune: true

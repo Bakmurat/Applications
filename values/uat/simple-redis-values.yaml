@@ -1,6 +1,4 @@
 # UAT Environment Values for simple-redis
-# Configuration for user acceptance testing
-
 replicaCount: 1
 
 image:
@@ -12,7 +10,6 @@ service:
   type: ClusterIP
   port: 6379
 
-# UAT resource limits (moderate)
 resources:
   limits:
     cpu: 200m
@@ -21,11 +18,9 @@ resources:
     cpu: 100m
     memory: 128Mi
 
-# Labels for UAT
 podLabels:
   environment: uat
   tier: testing
 
-# UAT-specific configuration
 persistence:
   enabled: false  # Temporary data for testing

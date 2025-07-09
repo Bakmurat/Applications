@@ -1,22 +1,15 @@
-# Production Environment Values for simple-nginx
-# Optimized for production workloads with proper resource allocation
-
-replicaCount: 3
+# Production Environment Values for simple-redis
+replicaCount: 2  # High availability
 
 image:
-  repository: nginx
-  tag: "1.21-alpine"
+  repository: redis
+  tag: "7.0-alpine"
   pullPolicy: IfNotPresent
-
-nameOverride: ""
-fullnameOverride: ""
 
 service:
   type: ClusterIP
-  port: 80
-  targetPort: 80
+  port: 6379
 
-# Production resource limits
 resources:
   limits:
     cpu: 500m
@@ -25,11 +18,7 @@ resources:
     cpu: 250m
     memory: 256Mi
 
-# Production-specific configuration
-nodeSelector: {}
-tolerations: []
-
-# Pod anti-affinity for high availability
+# High availability configuration
 affinity:
   podAntiAffinity:
     preferredDuringSchedulingIgnoredDuringExecution:
@@ -40,15 +29,14 @@ affinity:
           - key: app.kubernetes.io/name
             operator: In
             values:
-            - simple-nginx
+            - simple-redis
         topologyKey: kubernetes.io/hostname
 
-# Labels for production
 podLabels:
   environment: prod
   tier: production
 
-# Environment variable
-env:
-  - name: ENVIRONMENT
-    value: "production"
+persistence:
+  enabled: true
+  size: 8Gi
+  storageClass: harvester  # Use your available storage class

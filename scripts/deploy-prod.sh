@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Production Cluster Deployment Script
-# Run this ONLY in the PROD cluster where ArgoCD is installed
+# Run this ONLY in the PROD cluster (prodcluster)
 
 set -euo pipefail
 
@@ -16,8 +16,8 @@ ENVIRONMENT="prod"
 MINIO_HELM_REPO="http://s3.devkuban.com/helm-charts"
 ARGOCD_NAMESPACE="argocd"
 
-echo -e "${BLUE}🚀 Production Cluster Business Applications Deployment${NC}"
-echo "======================================================"
+echo -e "${BLUE}🚀 Production Cluster Deployment${NC}"
+echo "=================================="
 
 # Function to print status
 print_status() {
@@ -64,11 +64,6 @@ if ! command -v kubectl &> /dev/null; then
     exit 1
 fi
 
-if ! command -v helm &> /dev/null; then
-    print_error "helm is not installed"
-    exit 1
-fi
-
 if ! kubectl get namespace $ARGOCD_NAMESPACE &> /dev/null; then
     print_error "ArgoCD namespace '$ARGOCD_NAMESPACE' does not exist"
     exit 1
@@ -87,12 +82,12 @@ fi
 
 # Configure ArgoCD repository
 echo -e "${BLUE}🔐 Configuring ArgoCD repository secret...${NC}"
-kubectl apply -f ../../bootstrap/minio-helm-repo.yaml
+kubectl apply -f bootstrap/helm-repositories.yaml
 print_status "Applied MinIO repository secret"
 
 # Apply prod project
 echo -e "${BLUE}📋 Applying production project...${NC}"
-kubectl apply -f ../../projects/prod-project.yaml
+kubectl apply -f projects/prod-project.yaml
 print_status "Applied prod-project"
 
 # Wait for project
@@ -100,14 +95,15 @@ sleep 3
 
 # Deploy production applications
 echo -e "${BLUE}📱 Deploying production applications...${NC}"
-kubectl apply -f webapp.yaml
-print_status "Applied webapp for production"
+kubectl apply -f apps/prod/
+print_status "Applied production applications"
 
 # Check status
 echo -e "${BLUE}📊 Checking deployment status...${NC}"
 sleep 5
 
-kubectl get applications -n $ARGOCD_NAMESPACE | grep -E "(NAME|webapp-prod)" || true
+echo -e "${YELLOW}📋 ArgoCD Applications:${NC}"
+kubectl get applications -n $ARGOCD_NAMESPACE | grep -E "(NAME|.*-prod)" || echo "No prod applications found yet"
 
 echo ""
 echo -e "${GREEN}🎉 Production Cluster Deployment Complete!${NC}"
@@ -116,13 +112,15 @@ echo ""
 echo -e "${BLUE}📋 What was deployed:${NC}"
 echo "✅ MinIO Helm repository configured"
 echo "✅ Production project created"
-echo "✅ webapp-prod application deployed"
+echo "✅ simple-nginx-prod application deployed (3 replicas)"
+echo "✅ simple-redis-prod application deployed (2 replicas)"
 echo ""
 echo -e "${BLUE}🔗 Access:${NC}"
-echo "• ArgoCD UI: Check for 'webapp-prod' application"
-echo "• Application URL: https://webapp.devkuban.com"
+echo "• ArgoCD UI: Check for prod applications"
+echo "• Namespace: business-apps-prod"
 echo ""
 echo -e "${YELLOW}💡 Monitoring:${NC}"
 echo "• Monitor application sync status in ArgoCD UI"
-echo "• Check application health and performance"
-echo "• Set up alerts and monitoring"
+echo "• Check pods: kubectl get pods -n business-apps-prod"
+echo "• Set up monitoring and alerting"
+echo "• Verify high availability and performance"
